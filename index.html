@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Minimalist Study System - 과제 생존 마감 시뮬레이터 & 공부 시간 예측</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Wrapper Frame (Centering & Responsive constraints) -->
+  <div id="app-frame">
+
+    <!-- Global Toast Alert (Validation Notifications) -->
+    <div id="toast-alert" class="toast-alert">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 18px; height: 18px;">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+      </svg>
+      <span id="toast-message">오류 메시지</span>
+    </div>
+
+    <!-- Global Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner">
+          <svg viewBox="0 0 50 50">
+            <circle class="spinner-track" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+            <circle class="spinner-head" cx="25" cy="25" r="20" fill="none" stroke-width="4"></circle>
+          </svg>
+        </div>
+        <p id="loading-text" class="loading-text">과제 생존 확률 계산 중...</p>
+      </div>
+    </div>
+
+    <!-- App Header Bar -->
+    <header class="app-header">
+      <button class="header-btn" id="menu-toggle-btn" aria-label="메뉴 열기">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 24px; height: 24px;">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
+      </button>
+      <h1 class="header-title" id="header-title-text">홈</h1>
+      <div class="header-spacer"></div>
+    </header>
+
+    <!-- Sidebar Slide-out Navigation Menu -->
+    <div class="sidebar-overlay" id="sidebar-overlay">
+      <nav class="sidebar-drawer" id="sidebar-drawer">
+        <div class="sidebar-brand">
+          <h3>MINIMALIST STUDY</h3>
+          <p>도심 속 디지털 명상 학업 플랫폼</p>
+        </div>
+        <ul class="sidebar-menu">
+          <li>
+            <button class="sidebar-item-btn active" data-target="home">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              </svg>
+              홈 대시보드
+            </button>
+          </li>
+          <li>
+            <button class="sidebar-item-btn" data-target="simulation">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              마감 시뮬레이터
+            </button>
+          </li>
+          <li>
+            <button class="sidebar-item-btn" data-target="prediction">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 6a7.5 7.5 0 107.5 7.5h-7.5V6z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.5 10.5H21A7.5 7.5 0 0013.5 3v7.5z" />
+              </svg>
+              공부 시간 예측기
+            </button>
+          </li>
+          <li>
+            <button class="sidebar-item-btn" data-target="statistics">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+              </svg>
+              통계 정보
+            </button>
+          </li>
+        </ul>
+        <div class="sidebar-footer">
+          <p>© 2026 Minimalist Study System</p>
+          <p>Version 1.0.0 (Clean Spec)</p>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Main Views Scrolling Panel -->
+    <main class="app-content" id="app-content-scroll">
+
+      <!-- ==========================================
+           VIEW 6: Home / Launcher Dashboard
+           ========================================== -->
+      <section class="view-panel active" id="view-home">
+        <div class="view-title-group" style="margin-top: 12px; margin-bottom: 36px;">
+          <h2 style="font-size: 28px; line-height: 1.3;">안녕하세요.<br>오늘의 학습 목표를 확인하세요.</h2>
+          <p style="margin-top: 6px;">미니멀 학업 보조 도구로 어지러운 학습 효율을 정리합니다.</p>
+        </div>
+        <div class="home-menu-list">
+          <button class="home-menu-btn-black" id="home-goto-sim-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>과제 생존 마감 시뮬레이터</span>
+          </button>
+          <button class="home-menu-btn-black" id="home-goto-pred-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" />
+            </svg>
+            <span>공부 시간 예측하기</span>
+          </button>
+          <button class="home-menu-btn-white" id="home-goto-timer-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6M12 6a9 9 0 100 18 9 9 0 000-18z" />
+            </svg>
+            <span>실전 타이머</span>
+          </button>
+          <button class="home-menu-btn-white" id="home-goto-stats-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2M2 17L12 3l10 14H2z" />
+            </svg>
+            <span>통계 대시보드</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 1: Simulation Form (과제 생존 마감 시뮬레이터)
+           ========================================== -->
+      <section class="view-panel" id="view-simulation-form">
+        <!-- Subject Search Box -->
+        <div class="search-wrapper">
+          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+          <input type="text" class="input-field" id="subject-search-input" placeholder="과목을 검색하세요 (예: 심리학, 미적분)" autocomplete="off">
+          <ul class="suggestion-box" id="subject-suggestion-box">
+            <!-- Dynamically populated via JS -->
+          </ul>
+        </div>
+
+        <!-- Section: Study Style -->
+        <div class="section-title-group">
+          <h3>집중 유형 선택</h3>
+        </div>
+        <div class="scroll-x-container" id="study-style-container">
+          <div class="study-method-card selected" data-value="cramming">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+            </svg>
+            벼락치기형
+          </div>
+          <div class="study-method-card" data-value="steady">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941" />
+            </svg>
+            꾸준한 노력형
+          </div>
+          <div class="study-method-card" data-value="deep">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a3 3 0 00-3-3H9.75a3 3 0 00-3 3m.375 0a3 3 0 01-.375-1.5 3 3 0 00-3-3m.375 0H3.75a3 3 0 00-3 3m.375 0V18m0-5.25a3 3 0 01.375-1.5 3 3 0 003-3m-.375 0h.75a3 3 0 003 3M6 18v-5.25" />
+            </svg>
+            심도있는 탐구형
+          </div>
+        </div>
+
+        <!-- Section: Assignment Type -->
+        <div class="section-title-group">
+          <h3>과제 유형 선택</h3>
+        </div>
+        <div class="assignment-grid" id="assignment-type-grid">
+          <!-- Card 1: 보고서 -->
+          <div class="assignment-card" data-value="report">
+            <div class="assignment-card-check">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <div class="assignment-card-icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+              </svg>
+            </div>
+            <h4>보고서</h4>
+            <p>논문, 에세이, 서평 등 텍스트 위주의 과제</p>
+          </div>
+          <!-- Card 2: 문제풀이 -->
+          <div class="assignment-card selected" data-value="problems">
+            <div class="assignment-card-check">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <div class="assignment-card-icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.75 15.75V18m-3-3V18m-3-3V18m3-9v.008H12V9zm0 3v.008H12V12zm0 3v.008H12V15zm0-6h.008v.008H12V9zm0 3h.008v.008H12V12zm0 3h.008v.008H12V15zm0-6h.008v.008H12V9zm0 3h.008v.008H12V12zm0 3h.008v.008H12V15zm-6 7.5h12a2.25 2.25 0 002.25-2.25v-13.5A2.25 2.25 0 0018 1.5H6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 006 21.75z" />
+              </svg>
+            </div>
+            <h4>문제풀이</h4>
+            <p>수학, 과학, 공학 등 계산 및 논리 증명</p>
+          </div>
+          <!-- Card 3: 발표 준비 -->
+          <div class="assignment-card" data-value="presentation">
+            <div class="assignment-card-check">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <div class="assignment-card-icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.125 11.25h-14.25c-.621 0-1.125.504-1.125 1.125v6c0 .621.504 1.125 1.125 1.125h14.25c.621 0 1.125-.504 1.125-1.125v-6c0-.621-.504-1.125-1.125-1.125zM15 3.75H9m6 0a2.25 2.25 0 012.25 2.25v3.75H6.75V6a2.25 2.25 0 012.25-2.25m6 0v0a2.25 2.25 0 00-2.25 2.25v1.5H11.25V6a2.25 2.25 0 00-2.25-2.25" />
+              </svg>
+            </div>
+            <h4>발표 준비</h4>
+            <p>PPT 제작, 대본 작성 및 리허설</p>
+          </div>
+          <!-- Card 4: 프로젝트 -->
+          <div class="assignment-card" data-value="project">
+            <div class="assignment-card-check">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <div class="assignment-card-icon-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+              </svg>
+            </div>
+            <h4>프로젝트</h4>
+            <p>팀플, 코딩, 기획 등 장기 복합 과제</p>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="simulation-submit-btn">
+          예측하기
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 18px; height: 18px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
+        </button>
+      </section>
+
+      <!-- ==========================================
+           VIEW 4: Simulation Result Details
+           ========================================== -->
+      <section class="view-panel" id="view-simulation-result">
+        <div class="view-title-group">
+          <h2>예측 결과</h2>
+        </div>
+
+        <!-- Big card with progress bar -->
+        <div class="card">
+          <div class="result-time-box">
+            <span class="result-time-digits" id="sim-result-hours">2h 30m</span>
+            <span class="result-time-label">소요 예상</span>
+          </div>
+
+          <div class="progress-container">
+            <div class="progress-track">
+              <div class="progress-fill" id="sim-result-progress-fill" style="width: 85%;"></div>
+            </div>
+          </div>
+
+          <div class="result-metrics-row" style="margin-top: 24px;">
+            <div class="metric-sub-card" style="text-align: center;">
+              <span class="metric-sub-card-title">진행도</span>
+              <span class="metric-sub-card-value" id="sim-result-progress-val">85%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Simulation complete details card -->
+        <div class="simulation-status-card">
+          <span class="status-chip">시뮬레이션 완료</span>
+          <h4 class="status-headline" id="sim-status-title">이대로라면 마감 2시간 전 완료 가능!</h4>
+          <p class="status-description" id="sim-status-desc">
+            현재 페이스를 유지한다면 여유롭게 과제를 제출할 수 있습니다. 하지만 변수는 언제나 존재하니 지금 바로 시작하세요.
+          </p>
+        </div>
+
+        <button class="btn-secondary" id="sim-reset-btn" style="margin-top: 24px;">
+          시뮬레이션 다시 시작
+        </button>
+      </section>
+
+      <!-- ==========================================
+           VIEW 3: Prediction Form (공부 시간 예측)
+           ========================================== -->
+      <section class="view-panel" id="view-prediction-form">
+        <div class="view-title-group">
+          <h2>공부 시간 예측</h2>
+          <p>읽기 목표를 설정하여 예상 소요 시간을 확인하세요.</p>
+        </div>
+
+        <!-- Card: Learning Material -->
+        <div class="card">
+          <div class="form-group" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 20px; height: 20px; color: var(--primary);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-16.25a8.966 8.966 0 016 2.292m-6-2.292V20.25m0-16.25V9m0 11.25V18M18 6.042c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18c-2.305 0-4.408.867-6 2.292" />
+            </svg>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--primary);">학습 자료</h3>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label" for="material-name-input">문제집 / 교재 이름</label>
+              <input type="text" class="input-field" id="material-name-input" placeholder="예: 쎈 수학Ⅰ, 블랙라벨">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="pred-subject-input">과목</label>
+              <input type="text" class="input-field" id="pred-subject-input" placeholder="예: 수학, 영어, 화학">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pred-chapter-input">단원명 <span style="font-weight: 400; color: var(--text-caption); font-size: 11px;">(선택 입력)</span></label>
+            <input type="text" class="input-field" id="pred-chapter-input" placeholder="예: 지수함수, 로그">
+          </div>
+
+          <div class="grid-3" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 0;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="material-start-page">시작 페이지</label>
+              <input type="number" class="input-field" id="material-start-page" value="1" min="1">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="material-end-page">종료 페이지</label>
+              <input type="number" class="input-field" id="material-end-page" value="150" min="1">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label" for="pred-questions-input">문제 수</label>
+              <input type="number" class="input-field" id="pred-questions-input" value="40" min="0">
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: User Level & Difficulty Segment Selection -->
+        <div class="card">
+          <div class="form-group" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 20px; height: 20px; color: var(--primary);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+            </svg>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--primary);">학업 수준 및 예상 난이도</h3>
+          </div>
+
+          <!-- Academic Performance Grade level chips -->
+          <div class="form-group">
+            <label class="form-label">현재 학업 수준 (내신 / 모의고사 등급)</label>
+            <div class="grade-selector-container" id="pred-grade-selector">
+              <button class="grade-chip" data-value="1">1등급</button>
+              <button class="grade-chip" data-value="2">2등급</button>
+              <button class="grade-chip selected" data-value="3">3등급</button>
+              <button class="grade-chip" data-value="4">4등급</button>
+              <button class="grade-chip" data-value="5">5등급</button>
+              <button class="grade-chip" data-value="6">6등급↓</button>
+            </div>
+          </div>
+
+          <!-- Difficulty selection chips (Auto-detected but manually overrideable) -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label">문제집 예상 난이도 <span style="font-weight: 400; color: var(--text-caption); font-size: 11px;">(교재명 입력 시 자동 분석 가능)</span></label>
+            <div class="difficulty-selector-container" id="pred-difficulty-selector">
+              <button class="difficulty-chip" data-value="very-easy">매우 쉬움</button>
+              <button class="difficulty-chip" data-value="easy">쉬움</button>
+              <button class="difficulty-chip selected" data-value="normal">보통</button>
+              <button class="difficulty-chip" data-value="hard">어려움</button>
+              <button class="difficulty-chip" data-value="very-hard">매우 어려움</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card: Study Mode -->
+        <div class="card">
+          <div class="form-group" style="border-bottom: 1px solid var(--border-subtle); padding-bottom: 16px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 20px; height: 20px; color: var(--primary);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 21m8.913-5.096L18 21M18 9.5a6 6 0 11-12 0 6 6 0 0112 0z" />
+            </svg>
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--primary);">공부 방식</h3>
+          </div>
+
+          <p class="form-label" style="margin-bottom: 16px;">집중 강도를 선택하세요.</p>
+
+          <div class="mode-card-list" id="study-mode-list">
+            <!-- Mode 1: 몰입 모드 -->
+            <div class="mode-card selected" data-value="deep">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+              </svg>
+              <h4>몰입 모드</h4>
+              <p>고도의 집중력, 최소한의 휴식 (속도는 느리지만 이해도가 높음)</p>
+            </div>
+            <!-- Mode 2: 균형 모드 -->
+            <div class="mode-card" data-value="balanced">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v17.25m0 0c-4.72 0-8.625-3.55-9-8.25m9 8.25c4.72 0 8.625-3.55 9-8.25M12 3a9.01 9.01 0 00-9 9m9-9a9.01 9.01 0 019 9" />
+              </svg>
+              <h4>균형 모드</h4>
+              <p>일반적인 속도와 정기적인 뽀모도로 휴식</p>
+            </div>
+            <!-- Mode 3: 훑어보기 -->
+            <div class="mode-card" data-value="skimming">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.3 16.2L21 21M9 14.25A5.25 5.25 0 1014.25 9 5.251 5.251 0 009 14.25z" />
+              </svg>
+              <h4>훑어보기</h4>
+              <p>핵심 개념 위주의 빠른 검토 (빠른 속도)</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="prediction-submit-btn" style="margin-top: 8px;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 18px; height: 18px;">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+          </svg>
+          완료 시간 예측
+        </button>
+      </section>
+
+      <!-- ==========================================
+           VIEW 2: Prediction Result & Pomodoro Timer
+           ========================================== -->
+      <section class="view-panel" id="view-prediction-result">
+        <div class="view-title-group">
+          <h2>공부 시간 예측</h2>
+        </div>
+
+        <!-- Card: Prediction Results -->
+        <div class="card">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span class="chip">AI 예측 시간</span>
+            <span class="calibration-indicator" id="calibration-indicator" style="display: none;">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 11px; height: 11px;"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+              보정값 적용됨
+            </span>
+          </div>
+          <div class="result-time-box">
+            <span class="result-time-digits" id="pred-result-hours">2h 30m</span>
+            <span class="result-time-label">소요 예상</span>
+          </div>
+
+          <!-- Min / Max range row -->
+          <div class="pred-range-row">
+            <div class="pred-range-card">
+              <span class="pred-range-label">최소 예상</span>
+              <span class="pred-range-value" id="pred-result-min">—</span>
+            </div>
+            <div class="pred-range-card">
+              <span class="pred-range-label">최대 예상</span>
+              <span class="pred-range-value" id="pred-result-max">—</span>
+            </div>
+          </div>
+
+          <div class="progress-container" style="margin-top: 16px;">
+            <div class="progress-track">
+              <div class="progress-fill" id="pred-result-progress-fill" style="width: 85%;"></div>
+            </div>
+          </div>
+
+          <div class="result-metrics-row">
+            <div class="metric-sub-card">
+              <span class="metric-sub-card-title">신뢰도</span>
+              <span class="metric-sub-card-value" id="pred-result-confidence">85%</span>
+            </div>
+            <div class="metric-sub-card">
+              <span class="metric-sub-card-title">복잡도</span>
+              <span class="metric-sub-card-value" id="pred-result-complexity">높음</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actual Study Time Input for Calibration -->
+        <div class="actual-time-section">
+          <p class="actual-time-section-title">⏱ 실제 소요 시간 입력</p>
+          <p class="actual-time-section-desc">공부 완료 후 실제 걸린 시간을 입력하면, 다음 예측부터 정확도가 자동으로 향상됩니다.</p>
+          <div class="actual-time-input-row">
+            <div class="actual-time-field-group">
+              <div class="actual-time-field">
+                <label for="actual-hours-input">시간</label>
+                <input type="number" id="actual-hours-input" min="0" max="23" value="0" placeholder="0">
+              </div>
+              <div class="actual-time-field">
+                <label for="actual-minutes-input">분</label>
+                <input type="number" id="actual-minutes-input" min="0" max="59" value="0" placeholder="0">
+              </div>
+            </div>
+            <button class="btn-save-actual" id="save-actual-time-btn">저장</button>
+          </div>
+          <div class="calibration-saved-msg" id="calibration-saved-msg">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" style="width: 16px; height: 16px; flex-shrink: 0;"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            보정값이 저장되었습니다. 다음 예측부터 자동 반영됩니다.
+          </div>
+        </div>
+
+        <!-- Section: Timer -->
+        <div class="timer-control-card">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+            <h3 style="font-size: 16px; font-weight: 700; color: var(--primary);">타이머 설정</h3>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 20px; height: 20px; color: var(--primary);">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+
+          <!-- TIME ADJUSTMENT PICKER PANEL -->
+          <div id="timer-picker-panel">
+            <div class="timer-picker-row">
+              <div class="timer-picker-column">
+                <button class="timer-picker-adjust-btn up" id="adjust-hour-up" aria-label="시간 증가">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                  </svg>
+                </button>
+                <div class="timer-picker-block">
+                  <span class="timer-picker-digits" id="timer-picker-hour">02</span>
+                  <span class="timer-picker-label">시간</span>
+                </div>
+                <button class="timer-picker-adjust-btn down" id="adjust-hour-down" aria-label="시간 감소">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+              </div>
+              
+              <span class="timer-colon">:</span>
+              
+              <div class="timer-picker-column">
+                <button class="timer-picker-adjust-btn up" id="adjust-minute-up" aria-label="분 증가">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+                  </svg>
+                </button>
+                <div class="timer-picker-block">
+                  <span class="timer-picker-digits" id="timer-picker-minute">30</span>
+                  <span class="timer-picker-label">분</span>
+                </div>
+                <button class="timer-picker-adjust-btn down" id="adjust-minute-down" aria-label="분 감소">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <button class="btn-primary" id="timer-start-btn">타이머 시작</button>
+          </div>
+
+          <!-- ACTIVE COUNTDOWN RUNNING PANEL (HIDDEN BY DEFAULT) -->
+          <div id="timer-running-panel" style="display: none;">
+            <div class="active-timer-display">
+              <!-- Visual svg circle ring -->
+              <div class="timer-circle-container">
+                <svg class="timer-svg" viewBox="0 0 220 220">
+                  <circle class="timer-svg-bg" cx="110" cy="110" r="100"></circle>
+                  <circle class="timer-svg-fill" id="timer-ring-fill" cx="110" cy="110" r="100"></circle>
+                </svg>
+                <div class="timer-text-container">
+                  <div class="timer-digits-large" id="timer-running-digits">02:30:00</div>
+                  <div class="timer-subtext" id="timer-status-badge">집중 연구중</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="timer-button-row">
+              <button class="btn-secondary" id="timer-pause-btn">일시 정지</button>
+              <button class="btn-primary" id="timer-stop-btn" style="background-color: var(--error); color: white;">타이머 종료</button>
+            </div>
+          </div>
+
+          <span class="timer-caption">집중 모드에 진입하면 알림이 차단됩니다.</span>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 5: Statistics Dashboard (통계)
+           ========================================== -->
+      <section class="view-panel" id="view-statistics">
+        <div class="view-title-group">
+          <h2>통계 대시보드</h2>
+          <p>최근 학업 및 과제 활동 요약입니다.</p>
+        </div>
+
+        <!-- Metric Card 1: Total Study Time This Week -->
+        <div class="stat-metric-card">
+          <span class="stat-metric-title">이번 주 총 학습 시간</span>
+          <div class="stat-metric-value-row">
+            <span class="stat-metric-value" id="stats-total-hours">32</span>
+            <span class="stat-metric-unit">h</span>
+            <span class="stat-metric-value" id="stats-total-minutes" style="margin-left: 8px;">15</span>
+            <span class="stat-metric-unit">m</span>
+          </div>
+          <div class="stat-metric-trend">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.281m5.94 2.28l-2.28 5.941" />
+            </svg>
+            <span>+12% 지난주 대비</span>
+          </div>
+        </div>
+
+        <!-- Metric Card 2: Completed Assignments -->
+        <div class="stat-metric-card">
+          <span class="stat-metric-title">완료된 과제</span>
+          <div class="stat-metric-value-row">
+            <span class="stat-metric-value" id="stats-completed-count">14</span>
+          </div>
+          <div class="progress-container">
+            <div class="progress-track">
+              <div class="progress-fill" id="stats-completed-progress-fill" style="width: 70%;"></div>
+            </div>
+          </div>
+          <p style="font-size: 11px; color: var(--text-caption); margin-top: 8px;" id="stats-completed-percent-label">목표의 70% 달성</p>
+        </div>
+
+        <!-- SVG Line/Bar Interactive Combined Chart -->
+        <div class="chart-card">
+          <div class="chart-header">
+            <h4>학습 시간 vs 과제 완료 추이</h4>
+            <div class="tab-toggle-group">
+              <button class="tab-toggle-btn active" id="toggle-weekly-btn">주간</button>
+              <button class="tab-toggle-btn" id="toggle-monthly-btn">월간</button>
+            </div>
+          </div>
+
+          <div class="chart-svg-wrapper">
+            <!-- Dynamic Tooltip -->
+            <div id="chart-tooltip" class="chart-tooltip"></div>
+            
+            <svg class="chart-svg" id="stats-svg-chart" viewBox="0 0 400 200">
+              <!-- Rendered dynamically by javascript -->
+            </svg>
+          </div>
+
+          <!-- Chart Custom Legend -->
+          <div class="chart-legend">
+            <div class="legend-item">
+              <div class="legend-color-box bar"></div>
+              <span>학습 시간 (막대)</span>
+            </div>
+            <div class="legend-item">
+              <div class="legend-color-box line"></div>
+              <span>완료 과제 수 (선)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Navigation Bar (Minimalist) -->
+    <nav class="bottom-nav">
+      <!-- Active tab hides its icon and shifts label up. Inactive shows icon and label. -->
+      <button class="nav-tab active" data-target="home" aria-label="홈">
+        <svg class="nav-tab-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+        </svg>
+        <span class="nav-tab-label">홈</span>
+      </button>
+
+      <button class="nav-tab" data-target="simulation" aria-label="시뮬레이션">
+        <svg class="nav-tab-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.91 11.672a.375.375 0 010 .656l-5.603 3.113a.375.375 0 01-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112z" />
+        </svg>
+        <span class="nav-tab-label">시뮬레이션</span>
+      </button>
+
+      <button class="nav-tab" data-target="prediction" aria-label="예측">
+        <svg class="nav-tab-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <span class="nav-tab-label">예측</span>
+      </button>
+
+      <button class="nav-tab" data-target="statistics" aria-label="통계">
+        <svg class="nav-tab-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
+        </svg>
+        <span class="nav-tab-label">통계</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- App Core Logic Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
