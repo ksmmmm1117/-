@@ -776,14 +776,17 @@
           </ul>
         </div>
 
+
         <!-- FAB for adding event -->
-        <button class="fab-btn" id="fab-add-event" aria-label="일정 추가" style="position: absolute; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: var(--on-primary); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 28px; height: 28px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-        </button>
+        <div style="display: flex; justify-content: flex-end; margin-top: 24px; padding-bottom: 24px;">
+          <button class="fab-btn" id="fab-add-event" aria-label="일정 추가" style="width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: var(--on-primary); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 28px; height: 28px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+          </button>
+        </div>
 
         <!-- Add Event Modal -->
         <div class="modal-overlay" id="event-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
-          <div class="modal-content" style="background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 400px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+          <div class="modal-content" style="background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
               <h3 style="font-size: 18px; font-weight: 700;">새 일정 추가</h3>
               <button class="icon-btn close-modal" id="close-event-modal" style="background: none; border: none; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
