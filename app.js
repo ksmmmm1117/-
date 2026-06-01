@@ -27,7 +27,15 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load from LocalStorage or seed defaults
   let appState = JSON.parse(localStorage.getItem('minimalist_study_state'));
   if (!appState) {
-    appState = { ...DEFAULT_STATS };
+    appState = { ...DEFAULT_STATS, assignments: [], events: [], notifications: [] };
+    localStorage.setItem('minimalist_study_state', JSON.stringify(appState));
+  } else {
+    if (!appState.assignments) appState.assignments = [];
+    if (!appState.events) appState.events = [];
+    if (!appState.notifications) appState.notifications = [];
+  }
+
+  function saveState() {
     localStorage.setItem('minimalist_study_state', JSON.stringify(appState));
   }
 
@@ -280,7 +288,9 @@ document.addEventListener('DOMContentLoaded', () => {
     'simulation-result': '과제 생존 마감 시뮬레이터',
     'prediction-form': '공부 시간 예측',
     'prediction-result': '공부 시간 예측',
-    'statistics': '통계'
+    'statistics': '통계',
+    'calendar': '캘린더',
+    'notifications': '알림 센터'
   };
 
   function switchView(viewId) {
@@ -329,6 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Special view triggers
     if (viewId === 'statistics') {
       renderSVGChart('weekly');
+    } else if (viewId === 'home') {
+      if (typeof renderDashboard === 'function') renderDashboard();
+    } else if (viewId === 'calendar') {
+      if (typeof renderCalendar === 'function') renderCalendar();
+    } else if (viewId === 'notifications') {
+      if (typeof renderNotifications === 'function') renderNotifications();
     }
   }
 
@@ -486,94 +502,189 @@ document.addEventListener('DOMContentLoaded', () => {
 
   simSubmitBtn.addEventListener('click', () => {
     const inputSubj = subjectInput.value.trim();
+    const simDeadlineInput = document.getElementById('sim-deadline-input');
+    const deadlineVal = simDeadlineInput ? simDeadlineInput.value : '';
+
     if (!inputSubj) {
-      showToast('과목을 입력 또는 선택해주세요.');
+      showToast('과목 또는 과제명을 입력해주세요.');
       return;
     }
+    if (!deadlineVal) {
+      showToast('마감일시를 설정해주세요.');
+      return;
+    }
+
     currentSimInputs.subject = inputSubj;
 
     const SIM_PHRASES = [
       "과제 생존 확률 계산 중...",
-      "집중력 분석 중...",
-      "마감 위험도 확인 중...",
+      "마감 위험도 분석 중...",
+      "추천 시작 시점 계산 중...",
       "결과 생성 중..."
     ];
 
     runLoadingCycle(SIM_PHRASES, () => {
       // Simulation Math Calculation
       let baseMinutes = 150; // default 2h 30m
-      let progressPercent = 85;
-      let titleMsg = '';
-      let descMsg = '';
 
       // Check specific default combination to hit screen 4 exact specs
       if (currentSimInputs.style === 'cramming' && currentSimInputs.type === 'problems') {
         baseMinutes = 150; // exactly 2h 30m
-        progressPercent = 85; // exactly 85%
-        titleMsg = '이대로라면 마감 2시간 전 완료 가능!';
-        descMsg = '현재 페이스를 유지한다면 여유롭게 과제를 제출할 수 있습니다. 하지만 변수는 언제나 존재하니 지금 바로 시작하세요.';
       } else {
         // Dynamic computation
-        // Base hours by assignment
         if (currentSimInputs.type === 'report') {
-          baseMinutes = 180; // 3h
+          baseMinutes = 180;
         } else if (currentSimInputs.type === 'problems') {
-          baseMinutes = 150; // 2h 30m
+          baseMinutes = 150;
         } else if (currentSimInputs.type === 'presentation') {
-          baseMinutes = 105; // 1h 45m
+          baseMinutes = 105;
         } else if (currentSimInputs.type === 'project') {
-          baseMinutes = 255; // 4h 15m
+          baseMinutes = 255;
         }
-
-        // Modifier by style
         if (currentSimInputs.style === 'cramming') {
           baseMinutes = Math.max(60, baseMinutes - 20);
-          progressPercent = 70;
-          titleMsg = '마감 직전 완료 예상, 아슬아슬합니다!';
-          descMsg = '벼락치기 공부법은 속도는 빠르나 실수가 많아질 수 있습니다. 마감 시간에 늦지 않도록 서둘러 시작하세요!';
-        } else if (currentSimInputs.style === 'steady') {
-          baseMinutes = baseMinutes; // standard
-          progressPercent = 90;
-          titleMsg = '여유롭게 완성! 안정적인 생존율입니다.';
-          descMsg = '꾸준한 페이스를 이어가신다면 완벽한 제출이 가능합니다. 이 기조를 이어서 지금 집중해 보세요.';
         } else if (currentSimInputs.style === 'deep') {
-          baseMinutes = baseMinutes + 75; // deep research overhead
-          progressPercent = 95;
-          titleMsg = '완벽한 완성 가능! 뛰어난 퀄리티 예상.';
-          descMsg = '심도 깊은 학습 스타일로 확실히 과제를 해결할 수 있습니다. 예상 시간은 늘었지만 완성도는 극대화됩니다.';
+          baseMinutes = baseMinutes + 75;
         }
-
         // Hash code subject modifier
         let hash = 0;
         for (let i = 0; i < currentSimInputs.subject.length; i++) {
           hash = currentSimInputs.subject.charCodeAt(i) + ((hash << 5) - hash);
         }
-        const modMin = (Math.abs(hash) % 3) * 15 - 15; // -15, 0, or 15 mins
+        const modMin = (Math.abs(hash) % 3) * 15 - 15;
         baseMinutes += modMin;
       }
 
-      // Format output hours/minutes
+      // Format output hours/minutes for base
       const hrs = Math.floor(baseMinutes / 60);
       const mins = baseMinutes % 60;
       const timeStr = `${hrs}h ${mins > 0 ? mins + 'm' : '00m'}`;
 
+      // ---- New Recommendation Math ----
+      const now = new Date();
+      const deadline = new Date(deadlineVal);
+      const strictStart = new Date(deadline.getTime() - (baseMinutes * 60000));
+      const safeStart = new Date(deadline.getTime() - (baseMinutes * 1.3 * 60000));
+      
+      let statusStr = "분석 중";
+      let statusColor = "var(--primary)";
+      let postponeStr = "-";
+      let markerNowPercent = 0;
+
+      // Status determination
+      if (now > deadline) {
+        statusStr = "이미 늦음";
+        statusColor = "var(--error)";
+        postponeStr = "더 이상 미루기 어렵습니다.";
+      } else if (now > strictStart) {
+        statusStr = "위험";
+        statusColor = "var(--error)";
+        postponeStr = "더 이상 미루기 어렵습니다.";
+      } else if (now > safeStart) {
+        statusStr = "촉박";
+        statusColor = "#ff9800";
+        const diffMins = Math.max(0, (strictStart.getTime() - now.getTime()) / 60000);
+        postponeStr = `최대 ${formatDuration(diffMins)} 더 미룰 수 있습니다.`;
+      } else {
+        const diffMinsToSafe = (safeStart.getTime() - now.getTime()) / 60000;
+        if (diffMinsToSafe > 24 * 60) {
+          statusStr = "충분히 여유 있음";
+          statusColor = "#4caf50";
+        } else {
+          statusStr = "적정";
+          statusColor = "#2196f3";
+        }
+        const diffMins = Math.max(0, (strictStart.getTime() - now.getTime()) / 60000);
+        postponeStr = `최대 ${formatDuration(diffMins)} 더 미룰 수 있습니다.`;
+      }
+
+      // Timeline marker math (relative to total visual span)
+      // Span = safeStart - 1day ~ Deadline + 2 hours
+      const spanStart = safeStart.getTime() - (24 * 60 * 60000);
+      const spanEnd = deadline.getTime() + (2 * 60 * 60000);
+      const totalSpan = spanEnd - spanStart;
+      
+      const getPos = (t) => Math.max(5, Math.min(95, ((t - spanStart) / totalSpan) * 100));
+      
+      document.getElementById('marker-safe').style.left = `${getPos(safeStart.getTime())}%`;
+      document.getElementById('marker-strict').style.left = `${getPos(strictStart.getTime())}%`;
+      document.getElementById('marker-deadline').style.left = `${getPos(deadline.getTime())}%`;
+      
+      const nowPos = getPos(now.getTime());
+      document.getElementById('marker-now').style.left = `${nowPos}%`;
+      markerNowPercent = nowPos;
+
       // Set UI outputs
       simResultHours.textContent = timeStr;
-      simResultProgressVal.textContent = `${progressPercent}%`;
-      simStatusTitle.textContent = titleMsg;
-      simStatusDesc.textContent = descMsg;
-
-      // Reset and trigger animated progress bar
-      simResultProgressFill.style.width = '0%';
       
+      // Formatting time text
+      const fmtDate = (d) => `${d.getMonth()+1}월 ${d.getDate()}일 ${d.getHours() >= 12 ? '오후 ' + (d.getHours()===12 ? 12 : d.getHours()-12) : '오전 ' + (d.getHours()===0 ? 12 : d.getHours())}시 ${d.getMinutes()}분`;
+      
+      document.getElementById('sim-safe-time-text').textContent = `${fmtDate(safeStart)} 이전`;
+      document.getElementById('sim-strict-time-text').textContent = `최소 ${fmtDate(strictStart)}`;
+      document.getElementById('sim-postpone-text').textContent = postponeStr;
+      
+      const badge = document.getElementById('sim-current-status-badge');
+      badge.textContent = statusStr;
+      badge.style.backgroundColor = statusColor;
+      badge.style.color = "white";
+
+      // Save Assignment & Sync Calendar Event
+      const assignmentId = 'task_' + Date.now();
+      const newAssignment = {
+        id: assignmentId,
+        title: inputSubj,
+        subject: inputSubj,
+        deadline: deadline.getTime(),
+        baseMinutes: baseMinutes,
+        safeStart: safeStart.getTime(),
+        strictStart: strictStart.getTime(),
+        completed: false,
+        createdAt: now.getTime()
+      };
+      appState.assignments.push(newAssignment);
+
+      // Create timezone-safe ISO date string for calendar (YYYY-MM-DD)
+      const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+      const localISOTime = (new Date(deadline.getTime() - tzOffset)).toISOString().slice(0, -1);
+      const dateString = localISOTime.split('T')[0];
+
+      const newEvent = {
+        id: 'event_' + Date.now(),
+        assignmentId: assignmentId,
+        title: `[마감] ${inputSubj}`,
+        date: dateString,
+        startTime: deadline.toTimeString().substring(0, 5),
+        endTime: new Date(deadline.getTime() + 60*60000).toTimeString().substring(0,5),
+        memo: '자동 생성된 과제 마감일',
+        importance: 'high'
+      };
+      appState.events.push(newEvent);
+      saveState();
+
       switchView('simulation-result');
 
       // Trigger bar fill animation
       setTimeout(() => {
-        simResultProgressFill.style.width = `${progressPercent}%`;
+        document.getElementById('sim-timeline-fill').style.width = `${markerNowPercent}%`;
+        simResultProgressFill.style.width = `85%`; // Keep original progress bar static visual for study progress
       }, 100);
+      
+      if(typeof checkNotifications === 'function') checkNotifications();
     });
   });
+
+  function formatDuration(totalMins) {
+    if (totalMins <= 0) return '0분';
+    const d = Math.floor(totalMins / (24 * 60));
+    const h = Math.floor((totalMins % (24 * 60)) / 60);
+    const m = Math.floor(totalMins % 60);
+    let str = '';
+    if (d > 0) str += `${d}일 `;
+    if (h > 0) str += `${h}시간 `;
+    if (m > 0 || (d === 0 && h === 0)) str += `${m}분`;
+    return str.trim();
+  }
 
   simResetBtn.addEventListener('click', () => {
     subjectInput.value = '';
@@ -1300,6 +1411,456 @@ document.addEventListener('DOMContentLoaded', () => {
       chartSvg.appendChild(label);
     }
   }
+
+  // ==========================================
+  // Calendar Rendering & Logic
+  // ==========================================
+  let currentCalDate = new Date();
+  let selectedDateString = '';
+
+  const calendarDaysContainer = document.getElementById('calendar-days-container');
+  const calendarMonthTitle = document.getElementById('calendar-month-title');
+  const dailyEventList = document.getElementById('daily-event-list');
+  const selectedDateTitle = document.getElementById('selected-date-title');
+  const selectedDateCount = document.getElementById('selected-date-count');
+
+  function renderCalendar() {
+    if (!calendarDaysContainer) return;
+    calendarDaysContainer.innerHTML = '';
+    
+    const year = currentCalDate.getFullYear();
+    const month = currentCalDate.getMonth();
+    
+    calendarMonthTitle.textContent = `${year}년 ${month + 1}월`;
+    
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    
+    const startDayOfWeek = firstDay.getDay(); // 0 (Sun) to 6 (Sat)
+    const totalDays = lastDay.getDate();
+    
+    // Empty prefix days
+    for (let i = 0; i < startDayOfWeek; i++) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'cal-day empty';
+      calendarDaysContainer.appendChild(emptyDiv);
+    }
+    
+    const today = new Date();
+    
+    for (let d = 1; d <= totalDays; d++) {
+      const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'cal-day';
+      if (year === today.getFullYear() && month === today.getMonth() && d === today.getDate()) {
+        dayDiv.classList.add('today');
+        if(!selectedDateString) {
+          selectedDateString = dateStr;
+          dayDiv.classList.add('selected');
+        }
+      }
+      
+      if (selectedDateString === dateStr) {
+        dayDiv.classList.add('selected');
+      }
+      
+      dayDiv.textContent = d;
+      dayDiv.addEventListener('click', () => {
+        selectedDateString = dateStr;
+        renderCalendar();
+        renderDailyEvents();
+      });
+      
+      // Events for this day
+      const dayEvents = appState.events.filter(e => e.date === dateStr);
+      if (dayEvents.length > 0) {
+        const dotsDiv = document.createElement('div');
+        dotsDiv.className = 'event-dots';
+        // max 3 dots
+        dayEvents.slice(0, 3).forEach(e => {
+          const dot = document.createElement('div');
+          dot.className = `event-dot ${e.importance === 'high' ? 'high' : ''}`;
+          dotsDiv.appendChild(dot);
+        });
+        dayDiv.appendChild(dotsDiv);
+      }
+      
+      calendarDaysContainer.appendChild(dayDiv);
+    }
+  }
+
+  function renderDailyEvents() {
+    if (!dailyEventList) return;
+    
+    const [y, m, d] = selectedDateString.split('-');
+    selectedDateTitle.textContent = `${parseInt(m)}월 ${parseInt(d)}일`;
+    
+    const dayEvents = appState.events.filter(e => e.date === selectedDateString);
+    // Sort by startTime
+    dayEvents.sort((a, b) => a.startTime.localeCompare(b.startTime));
+    
+    selectedDateCount.textContent = `일정 ${dayEvents.length}개`;
+    
+    dailyEventList.innerHTML = '';
+    
+    if (dayEvents.length === 0) {
+      dailyEventList.innerHTML = '<li style="text-align:center; padding:20px; color:var(--text-caption); font-size:13px;">일정이 없습니다.</li>';
+      return;
+    }
+    
+    dayEvents.forEach(e => {
+      const li = document.createElement('li');
+      li.className = 'today-widget-item';
+      if(e.importance === 'high') li.classList.add('urgent');
+      
+      li.innerHTML = `
+        <div class="time">${e.startTime}</div>
+        <div class="details">
+          <div class="title">${e.title}</div>
+          <div class="tag">${e.endTime} • ${e.memo}</div>
+        </div>
+        <button class="icon-btn delete-event-btn" data-id="${e.id}" style="color:var(--text-placeholder); border:none; background:none; padding:4px; cursor:pointer;"><svg style="width:18px;height:18px;" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+      `;
+      
+      li.querySelector('.delete-event-btn').addEventListener('click', () => {
+        if(confirm('이 일정을 삭제하시겠습니까?')) {
+          appState.events = appState.events.filter(ev => ev.id !== e.id);
+          // Delete associated assignment if it was a task
+          if (e.assignmentId) {
+            appState.assignments = appState.assignments.filter(a => a.id !== e.assignmentId);
+          }
+          saveState();
+          renderCalendar();
+          renderDailyEvents();
+          if (typeof renderDashboard === 'function') renderDashboard();
+        }
+      });
+      
+      dailyEventList.appendChild(li);
+    });
+  }
+
+  // Bind Calendar Controls
+  const calPrevBtn = document.getElementById('cal-prev-month');
+  const calNextBtn = document.getElementById('cal-next-month');
+  if(calPrevBtn) calPrevBtn.addEventListener('click', () => {
+    currentCalDate.setMonth(currentCalDate.getMonth() - 1);
+    renderCalendar();
+  });
+  if(calNextBtn) calNextBtn.addEventListener('click', () => {
+    currentCalDate.setMonth(currentCalDate.getMonth() + 1);
+    renderCalendar();
+  });
+
+  // FAB Event Modal
+  const fabAddEvent = document.getElementById('fab-add-event');
+  const eventModal = document.getElementById('event-modal');
+  const closeEventModal = document.getElementById('close-event-modal');
+  const saveEventBtn = document.getElementById('save-event-btn');
+
+  if(fabAddEvent) fabAddEvent.addEventListener('click', () => {
+    document.getElementById('event-date-input').value = selectedDateString;
+    eventModal.style.display = 'flex';
+  });
+  if(closeEventModal) closeEventModal.addEventListener('click', () => {
+    eventModal.style.display = 'none';
+  });
+  if(saveEventBtn) saveEventBtn.addEventListener('click', () => {
+    const title = document.getElementById('event-title-input').value.trim();
+    const date = document.getElementById('event-date-input').value;
+    const start = document.getElementById('event-start-time-input').value;
+    const end = document.getElementById('event-end-time-input').value;
+    const importance = document.getElementById('event-importance-input').value;
+    const memo = document.getElementById('event-memo-input').value.trim();
+    
+    if(!title || !date || !start || !end) {
+      showToast('필수 항목을 모두 입력해주세요.');
+      return;
+    }
+    
+    appState.events.push({
+      id: 'evt_' + Date.now(),
+      title, date, startTime: start, endTime: end, importance, memo
+    });
+    saveState();
+    
+    eventModal.style.display = 'none';
+    
+    document.getElementById('event-title-input').value = '';
+    document.getElementById('event-memo-input').value = '';
+    
+    if(date === selectedDateString) renderDailyEvents();
+    renderCalendar();
+    if (typeof renderDashboard === 'function') renderDashboard();
+  });
+
+  // ==========================================
+  // Dashboard Rendering
+  // ==========================================
+  function renderDashboard() {
+    const dashboardStats = document.getElementById('home-dashboard-stats');
+    const urgentCardContainer = document.getElementById('home-urgent-card-container');
+    const todayList = document.getElementById('home-today-list');
+    
+    if(!dashboardStats) return;
+    
+    const now = new Date();
+    // Local date string properly
+    const tzOffset = now.getTimezoneOffset() * 60000;
+    const todayStr = (new Date(now.getTime() - tzOffset)).toISOString().split('T')[0];
+    
+    const activeTasks = appState.assignments.filter(a => !a.completed);
+    const completedCount = appState.assignments.filter(a => a.completed).length;
+    const todayEvents = appState.events.filter(e => e.date === todayStr);
+    
+    // This week deadlines (within 7 days)
+    const sevenDaysLater = now.getTime() + (7 * 24 * 60 * 60 * 1000);
+    const thisWeekTasks = activeTasks.filter(a => a.deadline <= sevenDaysLater).length;
+    
+    // Nearest deadline task
+    const sortedTasks = [...activeTasks].sort((a,b) => a.deadline - b.deadline);
+    const nearestTask = sortedTasks[0];
+    
+    dashboardStats.innerHTML = `
+      <div class="dashboard-stat-card">
+        <span class="stat-label">진행 중인 과제</span>
+        <span class="stat-value">${activeTasks.length}개</span>
+      </div>
+      <div class="dashboard-stat-card">
+        <span class="stat-label">완료한 과제</span>
+        <span class="stat-value" style="color:#4caf50;">${completedCount}개</span>
+      </div>
+      <div class="dashboard-stat-card">
+        <span class="stat-label">이번 주 마감</span>
+        <span class="stat-value stat-highlight">${thisWeekTasks}건</span>
+      </div>
+      <div class="dashboard-stat-card">
+        <span class="stat-label">오늘 일정</span>
+        <span class="stat-value">${todayEvents.length}개</span>
+      </div>
+    `;
+
+    // Urgent Card
+    urgentCardContainer.innerHTML = '';
+    urgentCardContainer.style.display = 'none';
+    
+    if (nearestTask) {
+      const diffMins = (nearestTask.deadline - now.getTime()) / 60000;
+      if (diffMins > 0 && diffMins <= 24 * 60) {
+        // Less than 24 hours left
+        urgentCardContainer.style.display = 'block';
+        urgentCardContainer.innerHTML = `
+          <div class="urgent-warning-card">
+            <h3><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:20px;height:20px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg> 긴급: 마감 임박</h3>
+            <p>${nearestTask.title}<br>마감까지 <strong>${formatDuration(diffMins)}</strong> 남았습니다.</p>
+            <button class="btn-urgent-check" data-id="${nearestTask.id}">지금 완료 처리하기</button>
+          </div>
+        `;
+        
+        urgentCardContainer.querySelector('.btn-urgent-check').addEventListener('click', (e) => {
+          nearestTask.completed = true;
+          saveState();
+          renderDashboard();
+          showToast('과제가 완료 처리되었습니다.');
+        });
+      }
+    }
+    
+    // Today Widget List
+    todayList.innerHTML = '';
+    if (todayEvents.length === 0) {
+      todayList.innerHTML = '<li style="padding:12px; color:var(--text-caption); font-size:13px; text-align:center;">오늘 일정이 없습니다.</li>';
+    } else {
+      const sortedToday = [...todayEvents].sort((a,b) => a.startTime.localeCompare(b.startTime));
+      sortedToday.slice(0, 4).forEach(e => {
+        const li = document.createElement('li');
+        li.className = `today-widget-item ${e.importance === 'high' ? 'urgent' : ''}`;
+        li.innerHTML = `
+          <div class="time">${e.startTime}</div>
+          <div class="details">
+            <div class="title">${e.title}</div>
+            <div class="tag">${e.memo}</div>
+          </div>
+        `;
+        todayList.appendChild(li);
+      });
+    }
+  }
+  
+  const homeGotoCal = document.getElementById('home-goto-calendar-btn');
+  if(homeGotoCal) homeGotoCal.addEventListener('click', () => switchView('calendar'));
+
+  // ==========================================
+  // Notification Center
+  // ==========================================
+  function addNotification(title, body, type = 'normal') {
+    appState.notifications.unshift({
+      id: 'notif_' + Date.now(),
+      title, body, type,
+      timestamp: Date.now(),
+      read: false
+    });
+    // Keep max 50
+    if (appState.notifications.length > 50) appState.notifications.pop();
+    saveState();
+    
+    // Browser Push
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body: body });
+    }
+  }
+
+  function requestNotifPermission() {
+    if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+      Notification.requestPermission();
+    }
+  }
+
+  function renderNotifications(filter = 'all') {
+    const listContainer = document.getElementById('notification-list-container');
+    if(!listContainer) return;
+    
+    listContainer.innerHTML = '';
+    
+    let notifs = appState.notifications;
+    if (filter === 'urgent') notifs = notifs.filter(n => n.type === 'urgent');
+    if (filter === 'task') notifs = notifs.filter(n => n.type === 'task');
+    
+    if (notifs.length === 0) {
+      listContainer.innerHTML = '<li style="text-align: center; padding: 32px; color: var(--text-placeholder); font-size: 14px;">알림이 없습니다.</li>';
+      return;
+    }
+    
+    notifs.forEach(n => {
+      const li = document.createElement('li');
+      li.className = `notification-item ${!n.read ? 'unread' : ''} ${n.type === 'urgent' ? 'urgent' : ''}`;
+      
+      const dateStr = new Date(n.timestamp).toLocaleString();
+      
+      li.innerHTML = `
+        <div class="notif-header">
+          <span>${n.type === 'urgent' ? '긴급' : (n.type === 'task' ? '과제' : '일반')}</span>
+          <span>${dateStr}</span>
+        </div>
+        <div class="notif-title">${n.title}</div>
+        <div class="notif-body">${n.body}</div>
+        <div class="notif-actions">
+          ${!n.read ? `<button class="mark-read-btn" data-id="${n.id}">읽음 처리</button>` : ''}
+          <button class="delete-notif-btn" data-id="${n.id}" style="color:var(--error);">삭제</button>
+        </div>
+      `;
+      
+      const markBtn = li.querySelector('.mark-read-btn');
+      if (markBtn) {
+        markBtn.addEventListener('click', () => {
+          n.read = true;
+          saveState();
+          renderNotifications(filter);
+        });
+      }
+      
+      li.querySelector('.delete-notif-btn').addEventListener('click', () => {
+        appState.notifications = appState.notifications.filter(x => x.id !== n.id);
+        saveState();
+        renderNotifications(filter);
+      });
+      
+      listContainer.appendChild(li);
+    });
+  }
+
+  const notifTabs = document.querySelectorAll('.notif-tab');
+  notifTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      notifTabs.forEach(t => {
+        t.classList.remove('active');
+        t.style.background = 'var(--surface)';
+        t.style.color = 'var(--text-primary)';
+        t.style.borderColor = 'var(--border-subtle)';
+      });
+      tab.classList.add('active');
+      tab.style.background = 'var(--primary)';
+      tab.style.color = 'var(--on-primary)';
+      tab.style.borderColor = 'var(--border-strong)';
+      renderNotifications(tab.getAttribute('data-filter'));
+    });
+  });
+
+  const clearAllNotifs = document.getElementById('clear-all-notif-btn');
+  if(clearAllNotifs) clearAllNotifs.addEventListener('click', () => {
+    appState.notifications = [];
+    saveState();
+    renderNotifications(document.querySelector('.notif-tab.active').getAttribute('data-filter'));
+  });
+
+  // ==========================================
+  // Smart Background Notification Checker
+  // ==========================================
+  const notifiedEvents = new Set(); // in-memory tracking of already notified limits
+
+  function checkNotifications() {
+    const now = Date.now();
+    requestNotifPermission();
+
+    appState.assignments.forEach(task => {
+      if (task.completed) return;
+      
+      const minsLeft = (task.deadline - now) / 60000;
+      
+      // 3 hours, 1 hour, 30 min checks
+      const checks = [
+        { mins: 180, id: `3h_${task.id}`, title: `[마감 3시간 전] ${task.title}` },
+        { mins: 60, id: `1h_${task.id}`, title: `[마감 1시간 전] ${task.title}` },
+        { mins: 30, id: `30m_${task.id}`, title: `[긴급] 마감 30분 전! ${task.title}` }
+      ];
+      
+      checks.forEach(chk => {
+        if (minsLeft > 0 && minsLeft <= chk.mins && !notifiedEvents.has(chk.id)) {
+          notifiedEvents.add(chk.id);
+          const type = chk.mins === 30 ? 'urgent' : 'task';
+          let body = `마감까지 ${formatDuration(minsLeft)} 남았습니다.`;
+          if (type === 'urgent') body = `아직 완료되지 않았습니다. 즉시 확인하세요!`;
+          addNotification(chk.title, body, type);
+        }
+      });
+      
+      // Recommendation alerts
+      const minsToSafe = (task.safeStart - now) / 60000;
+      if (minsToSafe > 0 && minsToSafe <= 30 && !notifiedEvents.has(`safe_${task.id}`)) {
+        notifiedEvents.add(`safe_${task.id}`);
+        addNotification(`[시작 권장] ${task.title}`, '과제를 여유롭게 끝내려면 지금 시작하는 것이 좋습니다.', 'task');
+      }
+      
+      const minsToStrict = (task.strictStart - now) / 60000;
+      if (minsToStrict > 0 && minsToStrict <= 30 && !notifiedEvents.has(`strict_${task.id}`)) {
+        notifiedEvents.add(`strict_${task.id}`);
+        addNotification(`[최소 시작] ${task.title}`, '지금 시작해야 마감에 겨우 맞출 수 있습니다. 서두르세요!', 'urgent');
+      }
+    });
+  }
+
+  // Check every minute
+  setInterval(checkNotifications, 60000);
+
+  // Initialize data on load
+  if (!selectedDateString) {
+    const d = new Date();
+    selectedDateString = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  
+  // Make these accessible for the initial route loading if needed
+  window.renderDashboard = renderDashboard;
+  window.renderCalendar = renderCalendar;
+  window.renderNotifications = renderNotifications;
+  
+  // Initial render
+  setTimeout(() => {
+    checkNotifications();
+    if(document.getElementById('view-home').classList.contains('active')) {
+      renderDashboard();
+    }
+  }, 100);
 
   // ==========================================
   // 10. Initialization view startup

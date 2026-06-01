@@ -1765,3 +1765,275 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ==========================================================================
+   Home Dashboard Widgets & Urgent Card
+   ========================================================================== */
+.urgent-warning-card {
+  background-color: var(--error);
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(186, 26, 26, 0.3);
+  animation: fadeInSlideUp var(--transition-speed) ease-out;
+}
+
+.urgent-warning-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.urgent-warning-card p {
+  font-size: 13px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.urgent-warning-card .btn-urgent-check {
+  background: white;
+  color: var(--error);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-top: 8px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dashboard-stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-stat-card .stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-caption);
+}
+
+.dashboard-stat-card .stat-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.dashboard-stat-card .stat-highlight {
+  color: var(--error);
+}
+
+.today-widget-card {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.today-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.today-widget-header h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.today-widget-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.today-widget-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  background: var(--secondary-bg);
+  border-radius: var(--radius-md);
+  align-items: center;
+}
+
+.today-widget-item .time {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+  min-width: 45px;
+}
+
+.today-widget-item .details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.today-widget-item .title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.today-widget-item .tag {
+  font-size: 11px;
+  color: var(--text-caption);
+}
+
+.today-widget-item.urgent {
+  background: var(--error-bg);
+  border-left: 3px solid var(--error);
+}
+.today-widget-item.urgent .title, .today-widget-item.urgent .time {
+  color: var(--error-text);
+}
+
+/* ==========================================================================
+   Calendar View
+   ========================================================================== */
+.cal-day {
+  height: 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 6px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  position: relative;
+  transition: background-color 0.15s;
+}
+
+.cal-day:hover {
+  background-color: var(--secondary-bg);
+}
+
+.cal-day.empty {
+  cursor: default;
+}
+.cal-day.empty:hover {
+  background-color: transparent;
+}
+
+.cal-day.today {
+  color: #2196f3;
+  font-weight: 700;
+}
+
+.cal-day.selected {
+  background-color: var(--primary);
+  color: var(--on-primary);
+  font-weight: 700;
+}
+
+.event-dots {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.event-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: var(--text-caption);
+}
+.event-dot.high {
+  background-color: var(--error);
+}
+.cal-day.selected .event-dot {
+  background-color: var(--on-primary);
+}
+
+/* ==========================================================================
+   Notification Center
+   ========================================================================== */
+.notification-item {
+  background: var(--surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.notification-item.unread {
+  background: #fdfdfd;
+  border-left: 4px solid var(--primary);
+}
+
+.notification-item.urgent {
+  border-left: 4px solid var(--error);
+}
+.notification-item.urgent.unread {
+  background: var(--error-bg);
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-caption);
+}
+
+.notif-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.notif-body {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.notif-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.notif-actions button {
+  background: var(--secondary-bg);
+  border: none;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.notif-actions button:hover {
+  background: var(--border-subtle);
+}

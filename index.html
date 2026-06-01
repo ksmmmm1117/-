@@ -84,6 +84,22 @@
               통계 정보
             </button>
           </li>
+          <li>
+            <button class="sidebar-item-btn" data-target="calendar">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+              캘린더
+            </button>
+          </li>
+          <li>
+            <button class="sidebar-item-btn" data-target="notifications">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+              </svg>
+              알림 센터
+            </button>
+          </li>
         </ul>
         <div class="sidebar-footer">
           <p>© 2026 Minimalist Study System</p>
@@ -99,9 +115,32 @@
            VIEW 6: Home / Launcher Dashboard
            ========================================== -->
       <section class="view-panel active" id="view-home">
-        <div class="view-title-group" style="margin-top: 12px; margin-bottom: 36px;">
+        <div class="view-title-group" style="margin-top: 12px; margin-bottom: 24px;">
           <h2 style="font-size: 28px; line-height: 1.3;">안녕하세요.<br>오늘의 학습 목표를 확인하세요.</h2>
           <p style="margin-top: 6px;">미니멀 학업 보조 도구로 어지러운 학습 효율을 정리합니다.</p>
+        </div>
+
+        <!-- 긴급 경고 카드 (JS에서 동적 렌더링, 평소엔 숨김) -->
+        <div id="home-urgent-card-container" style="display: none;"></div>
+
+        <!-- 통합 대시보드 지표 -->
+        <div class="dashboard-stats-grid" id="home-dashboard-stats">
+          <!-- JS에서 렌더링 -->
+        </div>
+
+        <!-- 오늘 일정 및 마감 위젯 -->
+        <div class="today-widget-card">
+          <div class="today-widget-header">
+            <h3>오늘의 일정 & 마감</h3>
+            <button class="text-btn" id="home-goto-calendar-btn">전체보기</button>
+          </div>
+          <ul class="today-widget-list" id="home-today-list">
+            <!-- JS에서 렌더링 -->
+          </ul>
+        </div>
+
+        <div class="section-title-group" style="margin-top: 32px; margin-bottom: 16px;">
+          <h3>빠른 실행</h3>
         </div>
         <div class="home-menu-list">
           <button class="home-menu-btn-black" id="home-goto-sim-btn">
@@ -118,7 +157,7 @@
           </button>
           <button class="home-menu-btn-white" id="home-goto-timer-btn">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6M12 6a9 9 0 100 18 9 9 0 000-18z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>실전 타이머</span>
           </button>
@@ -140,10 +179,18 @@
           <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
-          <input type="text" class="input-field" id="subject-search-input" placeholder="과목을 검색하세요 (예: 심리학, 미적분)" autocomplete="off">
+          <input type="text" class="input-field" id="subject-search-input" placeholder="과목 또는 과제명을 검색/입력하세요" autocomplete="off">
           <ul class="suggestion-box" id="subject-suggestion-box">
             <!-- Dynamically populated via JS -->
           </ul>
+        </div>
+
+        <!-- Deadline Input -->
+        <div class="section-title-group" style="margin-top: 16px;">
+          <h3>마감일시 설정</h3>
+        </div>
+        <div class="form-group">
+          <input type="datetime-local" class="input-field" id="sim-deadline-input">
         </div>
 
         <!-- Section: Study Style -->
@@ -250,15 +297,63 @@
            VIEW 4: Simulation Result Details
            ========================================== -->
       <section class="view-panel" id="view-simulation-result">
-        <div class="view-title-group">
-          <h2>예측 결과</h2>
+        <div class="view-title-group" style="margin-bottom: 20px;">
+          <h2>예측 및 추천 결과</h2>
+        </div>
+
+        <!-- Timeline Card (New) -->
+        <div class="card timeline-card" style="margin-bottom: 24px; padding: 20px 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h3 class="timeline-title" style="font-size: 15px; font-weight: 700; color: var(--primary);">과제 타임라인 분석</h3>
+            <div class="timeline-status-badge" id="sim-current-status-badge" style="font-size: 11px; padding: 4px 8px; border-radius: 4px; font-weight: 600;">상태 분석 중</div>
+          </div>
+          
+          <div class="timeline-graphic" style="position: relative; height: 60px; margin-bottom: 24px; margin-top: 10px;">
+            <div class="timeline-track" style="position: absolute; top: 20px; left: 0; right: 0; height: 8px; background: var(--secondary-bg); border-radius: 4px;">
+              <!-- JS dynamically places markers -->
+              <div class="timeline-fill" id="sim-timeline-fill" style="position: absolute; top: 0; left: 0; height: 100%; background: var(--primary); border-radius: 4px; width: 0%;"></div>
+              
+              <!-- Markers (positions set via inline style left %) -->
+              <div class="timeline-marker" id="marker-now" style="left: 0%;">
+                <div class="marker-dot" style="background: #2196f3;"></div>
+                <span class="marker-label">현재</span>
+              </div>
+              <div class="timeline-marker" id="marker-safe" style="left: 30%;">
+                <div class="marker-dot" style="background: #4caf50;"></div>
+                <span class="marker-label">권장 시작</span>
+              </div>
+              <div class="timeline-marker" id="marker-strict" style="left: 70%;">
+                <div class="marker-dot" style="background: #ff9800;"></div>
+                <span class="marker-label">최소 시작</span>
+              </div>
+              <div class="timeline-marker" id="marker-deadline" style="left: 100%;">
+                <div class="marker-dot" style="background: var(--error);"></div>
+                <span class="marker-label" style="font-weight:700; color:var(--error);">마감일</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="timeline-details-list" style="display: flex; flex-direction: column; gap: 12px; background: var(--secondary-bg); padding: 12px; border-radius: var(--radius-default);">
+            <div class="timeline-detail-item" style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span class="detail-label" style="color: var(--text-secondary);">여유롭게 끝내려면</span>
+              <span class="detail-value" id="sim-safe-time-text" style="font-weight: 600; color: var(--primary);">-</span>
+            </div>
+            <div class="timeline-detail-item" style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span class="detail-label" style="color: var(--text-secondary);">딱 맞춰 끝내려면</span>
+              <span class="detail-value" id="sim-strict-time-text" style="font-weight: 600; color: var(--primary);">-</span>
+            </div>
+            <div class="timeline-detail-item" style="display: flex; justify-content: space-between; font-size: 13px;">
+              <span class="detail-label" style="color: var(--text-secondary);">미루기 가능 시간</span>
+              <span class="detail-value" id="sim-postpone-text" style="font-weight: 600; color: var(--primary);">-</span>
+            </div>
+          </div>
         </div>
 
         <!-- Big card with progress bar -->
         <div class="card">
           <div class="result-time-box">
             <span class="result-time-digits" id="sim-result-hours">2h 30m</span>
-            <span class="result-time-label">소요 예상</span>
+            <span class="result-time-label">소요 예상 (버퍼 제외 순수 시간)</span>
           </div>
 
           <div class="progress-container">
@@ -647,6 +742,118 @@
         </div>
       </section>
 
+      <!-- ==========================================
+           VIEW 7: Calendar (캘린더)
+           ========================================== -->
+      <section class="view-panel" id="view-calendar">
+        <div class="calendar-header-bar" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <button class="icon-btn" id="cal-prev-month" style="background: none; border: none; font-size: 20px; cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:24px; height:24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <h2 id="calendar-month-title" style="font-size: 20px; font-weight: 700;">2026년 6월</h2>
+          <button class="icon-btn" id="cal-next-month" style="background: none; border: none; font-size: 20px; cursor: pointer;">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="width:24px; height:24px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+
+        <div class="calendar-grid-container" style="background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); padding: 16px;">
+          <div class="calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center;">
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: var(--error); margin-bottom: 8px;">일</div>
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: var(--text-caption); margin-bottom: 8px;">월</div>
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: var(--text-caption); margin-bottom: 8px;">화</div>
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: var(--text-caption); margin-bottom: 8px;">수</div>
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: var(--text-caption); margin-bottom: 8px;">목</div>
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: var(--text-caption); margin-bottom: 8px;">금</div>
+            <div class="cal-day-header" style="font-size: 12px; font-weight: 600; color: #2196f3; margin-bottom: 8px;">토</div>
+          </div>
+          <!-- Days populated by JS -->
+          <div id="calendar-days-container" class="cal-days-wrapper" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;"></div>
+        </div>
+
+        <div class="calendar-daily-events" style="margin-top: 24px;">
+          <div class="daily-events-header" style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <h3 id="selected-date-title" style="font-size: 16px; font-weight: 700;">6월 1일</h3>
+            <span id="selected-date-count" style="font-size: 12px; color: var(--text-caption);">일정 0개</span>
+          </div>
+          <ul class="daily-event-list" id="daily-event-list" style="list-style: none; display: flex; flex-direction: column; gap: 12px;">
+            <!-- Populated by JS -->
+          </ul>
+        </div>
+
+        <!-- FAB for adding event -->
+        <button class="fab-btn" id="fab-add-event" aria-label="일정 추가" style="position: absolute; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%; background: var(--primary); color: var(--on-primary); border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 10;">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 28px; height: 28px;"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        </button>
+
+        <!-- Add Event Modal -->
+        <div class="modal-overlay" id="event-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px;">
+          <div class="modal-content" style="background: var(--surface); border-radius: var(--radius-lg); width: 100%; max-width: 400px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+              <h3 style="font-size: 18px; font-weight: 700;">새 일정 추가</h3>
+              <button class="icon-btn close-modal" id="close-event-modal" style="background: none; border: none; cursor: pointer;"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="width: 24px; height: 24px;"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label class="form-label">일정 제목</label>
+                <input type="text" class="input-field" id="event-title-input" placeholder="예: 팀플 회의">
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">날짜</label>
+                  <input type="date" class="input-field" id="event-date-input">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">중요도</label>
+                  <select class="input-field" id="event-importance-input">
+                    <option value="normal">보통</option>
+                    <option value="high">높음 (마감/시험)</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid-2">
+                <div class="form-group">
+                  <label class="form-label">시작 시간</label>
+                  <input type="time" class="input-field" id="event-start-time-input" value="09:00">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">종료 시간</label>
+                  <input type="time" class="input-field" id="event-end-time-input" value="10:00">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">메모 (선택)</label>
+                <input type="text" class="input-field" id="event-memo-input" placeholder="추가 정보 입력">
+              </div>
+              <button class="btn-primary" id="save-event-btn" style="width: 100%; margin-top: 12px;">저장하기</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           VIEW 8: Notifications (알림 센터)
+           ========================================== -->
+      <section class="view-panel" id="view-notifications">
+        <div class="view-title-group" style="display: flex; justify-content: space-between; align-items: flex-end;">
+          <div>
+            <h2>알림 센터</h2>
+            <p style="margin-top: 4px;">과제 및 일정 알림 내역입니다.</p>
+          </div>
+          <button class="text-btn" id="clear-all-notif-btn" style="color: var(--error); background: none; border: none; font-size: 13px; font-weight: 600; cursor: pointer; padding-bottom: 4px;">모두 지우기</button>
+        </div>
+
+        <div class="notif-filter-tabs" style="display: flex; gap: 8px; margin-bottom: 20px;">
+          <button class="notif-tab active" data-filter="all" style="padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--primary); color: var(--on-primary); font-size: 13px; cursor: pointer;">전체</button>
+          <button class="notif-tab" data-filter="urgent" style="padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--surface); color: var(--text-primary); font-size: 13px; cursor: pointer;">긴급</button>
+          <button class="notif-tab" data-filter="task" style="padding: 6px 12px; border-radius: 16px; border: 1px solid var(--border-subtle); background: var(--surface); color: var(--text-primary); font-size: 13px; cursor: pointer;">과제</button>
+        </div>
+
+        <ul class="notification-list" id="notification-list-container" style="list-style: none; display: flex; flex-direction: column; gap: 12px;">
+          <!-- Populated by JS -->
+          <li style="text-align: center; padding: 32px; color: var(--text-placeholder); font-size: 14px;">알림이 없습니다.</li>
+        </ul>
+      </section>
+
     </main>
 
     <!-- Bottom Navigation Bar (Minimalist) -->
@@ -679,6 +886,20 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7.5 14.25v2.25m3-4.5v4.5m3-6.75v6.75m3-9v9M6 20.25h12A2.25 2.25 0 0020.25 18V6A2.25 2.25 0 0018 3.75H6A2.25 2.25 0 003.75 6v12A2.25 2.25 0 006 20.25z" />
         </svg>
         <span class="nav-tab-label">통계</span>
+      </button>
+
+      <button class="nav-tab" data-target="calendar" aria-label="캘린더">
+        <svg class="nav-tab-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+        </svg>
+        <span class="nav-tab-label">캘린더</span>
+      </button>
+
+      <button class="nav-tab" data-target="notifications" aria-label="알림">
+        <svg class="nav-tab-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+        </svg>
+        <span class="nav-tab-label">알림</span>
       </button>
     </nav>
 
